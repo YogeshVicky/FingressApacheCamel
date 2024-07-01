@@ -1,0 +1,47 @@
+-  beans:
+   -  name: transformerActivemqToJdbcYaml
+      type: com.fingressYaml.transformer.TransformerGoogleSheetsToJdbcYaml
+   -  name: transformerJdbcToGoogleSheetsYaml
+      type: com.fingressYaml.transformer.TransformerJdbcToGoogleSheetsYaml
+   -  name: myDataSource
+      type: com.zaxxer.hikari.HikariDataSource
+
+
+- route:
+     id: Router-GoogleSheetsToJdbc-yamlRoute
+     from:
+       uri: timer:run?repeatCount=1
+       steps:
+         - to:
+            uri: google-sheets:data/get?spreadsheetId={{camel.component.google-sheets.configuration.spreadsheetId}}&range={{camel.component.google-sheets.configuration.range}}&clientId={{camel.component.google-sheets.configuration.client-id}}&clientSecret={{camel.component.google-sheets.configuration.client-secret}}&accessToken={{camel.component.google-sheets.configuration.access-token}}&refreshToken={{camel.component.google-sheets.configuration.refresh-token}}
+         - process:
+            ref: transformerActivemqToJdbcYaml
+         - split:
+             simple: ${body}
+         - setBody:
+             simple: insert into employee (EmployeeId, EmployeeName, EmployeeSalary, Date_Of_Joining) values ('${body[EmployeeId]}','${body[EmployeeName]}','${body[EmployeeSalary]}', '${body[Date_Of_Joining]}')
+         - to:
+             uri: jdbc:myDataSource
+         - log:
+             message: Success !!!inserted from Google Sheet to Database!!!
+
+################################################ Jdbc To GoogleSheets #######################################################
+- route:
+    id: Router-JdbcToGoogleSheets-yamlRoute
+    from:
+      uri: timer:run?repeatCount=1
+      steps:
+      - setBody:
+          simple: select * from employee
+      - to:
+          uri: jdbc:myDataSource
+      - process:
+          ref: transformerJdbcToGoogleSheetsYaml
+      - to:
+          uri: google-sheets:data/append?spreadsheetId={{camel.component.google-sheets.configuration.spreadsheetId}}&range={{camel.component.google-sheets.configuration.range}}&clientId={{camel.component.google-sheets.configuration.client-id}}&clientSecret={{camel.component.google-sheets.configuration.client-secret}}&accessToken={{camel.component.google-sheets.configuration.access-token}}&refreshToken={{camel.component.google-sheets.configuration.refresh-token}}
+      - log:
+          message: Success !!!Readed from Database to Google Sheet!!!
+          
+          
+          
+          

@@ -1,0 +1,49 @@
+-  beans:
+   -  name: myDataSource
+      type: com.zaxxer.hikari.HikariDataSource;
+   -  name: transformerYamlActivemqToJdbc
+      type: com.fingressYaml.transformer.TransformerYamlActivemqToJdbc
+   -  name: transformerYamlJdbcToActivemq
+      type: com.fingressYaml.transformer.TransformerYamlJdbcToActivemq
+
+-  route:
+      id: Router-ActivemqToJdbc-yamlRoute
+      from:
+         uri: activemq:queue:Activemq1
+         steps:
+         -  process:
+               ref: transformerYamlActivemqToJdbc
+         -  split:
+               simple: ${body}
+         -  setBody:
+               simple: insert into employee (EmployeeId, EmployeeName, EmployeeSalary, Date_Of_Joining) values ('${body[EmployeeId]}',
+                  '${body[EmployeeName]}', '${body[EmployeeSalary]}', '${body[Date_Of_Joining]}')
+         -  log:
+               message: ${body}
+         -  to:
+               uri: jdbc:myDataSource
+         -  log:
+               message: Success !!!inserted from Activemq1 to Database!!!
+
+
+####################################################Jdbc to Activemq########################################################
+-  route:
+      id: Router-JdbcToActivemq-yamlRoute
+      from:
+         uri: timer:run?repeatCount=1
+         steps:
+         -  setBody:
+               simple: select*from employee
+         -  to:
+               uri: jdbc:dataSource
+         -  process:
+               ref: transformerYamlJdbcToActivemq
+         -  split:
+               simple: ${body}
+         -  log:
+               message: ${body}
+         -  to:
+               uri: activemq:queue:Activemq2
+         -  log:
+               message: Success !!!Readed from Database to Activemq2!!!
+               

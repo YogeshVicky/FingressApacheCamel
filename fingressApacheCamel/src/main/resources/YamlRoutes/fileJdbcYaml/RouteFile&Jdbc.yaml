@@ -1,0 +1,47 @@
+-  beans:
+   -  name: myDataSource
+      type: com.zaxxer.hikari.HikariDataSource;
+   -  name: transformerYamlFileToJdbc
+      type: com.fingressYaml.transformer.TransformerYamlFileToJdbc
+   -  name: transformerYamlJdbcToFile
+      type: com.fingressYaml.transformer.TransformerYamlJdbcToFile
+
+-  route:
+      id: file-to-jdbc-yamlRoute
+      from:
+         uri: file:files/Input?noop=true
+         steps:
+         -  process:
+               ref: transformerYamlFileToJdbc
+         -  split:
+               simple: ${body}
+         -  setBody:
+               simple: insert into employee (EmployeeId, EmployeeName, EmployeeSalary, Date_Of_Joining) values ('${body[EmployeeId]}',
+                  '${body[EmployeeName]}', '${body[EmployeeSalary]}', '${body[Date_Of_Joining]}')
+         -  to:
+               uri: jdbc:myDataSource
+         -  log:
+               message: Success
+
+
+#####################################################Jdbc To File#############################################################
+
+-  route:  
+      id: jdbc-to-file-yamlRoute
+      from:
+         uri: timer:run?repeatCount=1
+         steps:
+         -  setBody:
+               simple: select*from employee
+         -  to:
+               uri: jdbc:dataSource
+         -  process:
+               ref: transformerYamlJdbcToFile
+         -  split:
+               simple: ${body}
+         -  to:
+               uri: file:files/Output?fileName=employeesDetails.csv
+         -  log:
+               message: Success
+               
+               
