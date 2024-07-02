@@ -22,7 +22,8 @@ public class TransformerGoogleSheetsToFile implements Processor {
 			JsonNode valuesNode = jsonNode.get("values");
 
 			StringBuilder csv = new StringBuilder();
-			for (JsonNode data : valuesNode) {
+			for (int i = 1; i < valuesNode.size(); i++) {
+				JsonNode data = valuesNode.get(i);
 				Iterator<JsonNode> elements = data.elements();
 				while (elements.hasNext()) {
 					csv.append(elements.next().asText());
